@@ -156,7 +156,7 @@ func TestChildSpan(t *testing.T) {
 
 	var child, parent mocktracer.Span
 	for _, s := range spans {
-		// order of traces in buffer is not garanteed
+		// order of traces in buffer is not guaranteed
 		switch s.OperationName() {
 		case "redis.command":
 			child = s
