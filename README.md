@@ -1,5 +1,9 @@
 # dd-trace-go-redis
 
+[![ci](https://github.com/johejo/dd-trace-go-redis/workflows/ci/badge.svg)](https://github.com/johejo/dd-trace-go-redis/actions?query=workflow%3Aci)
+[![Go Report Card](https://goreportcard.com/badge/github.com/johejo/dd-trace-go-redis)](https://goreportcard.com/report/github.com/johejo/dd-trace-go-redis)
+[![codecov](https://codecov.io/gh/johejo/dd-trace-go-redis/branch/master/graph/badge.svg)](https://codecov.io/gh/johejo/dd-trace-go-redis)
+
 DataDog tracer for go-redis/redis v7 and v8
 
 ## Motivation
