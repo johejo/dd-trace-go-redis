@@ -207,7 +207,7 @@ func TestError(t *testing.T) {
 		mt := mocktracer.Start()
 		defer mt.Stop()
 
-		client := NewClient(opts, WithServiceName("my-redis"))
+		client := NewClient(opts, WithServiceName("my-redis"), WithRedisOptions(opts))
 		_, err := client.Get(ctx, "key").Result()
 
 		spans := mt.FinishedSpans()
@@ -320,9 +320,9 @@ func TestWithContext(t *testing.T) {
 	mt := mocktracer.Start()
 	defer mt.Stop()
 
-	_client1 := NewClient(opts, WithServiceName("my-redis"))
+	client1 := NewClient(opts, WithServiceName("my-redis"))
 	s1, ctx1 := tracer.StartSpanFromContext(context.Background(), "span1.name")
-	client1 := _client1.WithContext(ctx1)
+	client1 = client1.WithContext(ctx1)
 	s2, ctx2 := tracer.StartSpanFromContext(context.Background(), "span2.name")
 	client2 := client1.WithContext(ctx2)
 	client1.Set(ctx1, "test_key", "test_value", 0)

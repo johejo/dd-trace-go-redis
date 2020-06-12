@@ -12,7 +12,6 @@ package redis
 import (
 	"context"
 	"math"
-	"net"
 	"strconv"
 	"strings"
 
@@ -22,81 +21,59 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
-// Client is used to trace requests to a redis server.
-type Client struct {
-	*redis.Client
-	*params
-}
-
-var _ redis.Cmdable = (*Client)(nil)
-
-// params holds the tracer and a set of parameters which are recorded with every trace.
-type params struct {
-	host   string
-	port   string
-	db     string
-	config *clientConfig
-}
-
 // NewClient returns a new Client that is traced with the default tracer under
 // the service name "redis".
-func NewClient(opt *redis.Options, opts ...ClientOption) *Client {
+func NewClient(opt *redis.Options, opts ...ClientOption) *redis.Client {
 	return WrapClient(redis.NewClient(opt), opts...)
 }
 
 // WrapClient wraps a given redis.Client with a tracer under the given service name.
-func WrapClient(c *redis.Client, opts ...ClientOption) *Client {
+func WrapClient(c *redis.Client, opts ...ClientOption) *redis.Client {
+	c.AddHook(NewHook(opts...))
+	return c
+}
+
+// Hook imprements redis.Hook.
+type Hook struct {
+	cfg *clientConfig
+}
+
+// NewHook returns a new Hook.
+func NewHook(opts ...ClientOption) *Hook {
 	cfg := new(clientConfig)
 	defaults(cfg)
-	for _, fn := range opts {
-		fn(cfg)
+	for _, opt := range opts {
+		opt(cfg)
 	}
-	opt := c.Options()
-	host, port, err := net.SplitHostPort(opt.Addr)
-	if err != nil {
-		host = opt.Addr
-		port = "6379"
+	return &Hook{
+		cfg: cfg,
 	}
-	params := &params{
-		host:   host,
-		port:   port,
-		db:     strconv.Itoa(opt.DB),
-		config: cfg,
-	}
-	tc := &Client{Client: c, params: params}
-	tc.Client.AddHook(&hook{tc: tc})
-	return tc
 }
 
-type hook struct {
-	tc *Client
-}
+var _ redis.Hook = (*Hook)(nil)
 
-var _ redis.Hook = (*hook)(nil)
-
-func (h *hook) BeforeProcess(ctx context.Context, cmd redis.Cmder) (context.Context, error) {
+func (h *Hook) BeforeProcess(ctx context.Context, cmd redis.Cmder) (context.Context, error) {
 	raw := cmd.String()
 	parts := strings.Split(raw, " ")
 	length := len(parts) - 1
-	p := h.tc.params
 	opts := []ddtrace.StartSpanOption{
 		tracer.SpanType(ext.SpanTypeRedis),
-		tracer.ServiceName(p.config.serviceName),
+		tracer.ServiceName(h.cfg.serviceName),
 		tracer.ResourceName(parts[0]),
-		tracer.Tag(ext.TargetHost, p.host),
-		tracer.Tag(ext.TargetPort, p.port),
-		tracer.Tag("out.db", p.db),
+		tracer.Tag(ext.TargetHost, h.cfg.host),
+		tracer.Tag(ext.TargetPort, h.cfg.port),
+		tracer.Tag("out.db", h.cfg.db),
 		tracer.Tag("redis.raw_command", raw),
 		tracer.Tag("redis.args_length", strconv.Itoa(length)),
 	}
-	if !math.IsNaN(p.config.analyticsRate) {
-		opts = append(opts, tracer.Tag(ext.EventSampleRate, p.config.analyticsRate))
+	if !math.IsNaN(h.cfg.analyticsRate) {
+		opts = append(opts, tracer.Tag(ext.EventSampleRate, h.cfg.analyticsRate))
 	}
 	_, ctxWithSpan := tracer.StartSpanFromContext(ctx, "redis.command", opts...)
 	return ctxWithSpan, nil
 }
 
-func (h *hook) AfterProcess(ctx context.Context, cmd redis.Cmder) error {
+func (h *Hook) AfterProcess(ctx context.Context, cmd redis.Cmder) error {
 	span, _ := tracer.SpanFromContext(ctx)
 	var finishOpts []ddtrace.FinishOption
 	err := cmd.Err()
@@ -107,29 +84,28 @@ func (h *hook) AfterProcess(ctx context.Context, cmd redis.Cmder) error {
 	return err
 }
 
-func (h *hook) BeforeProcessPipeline(ctx context.Context, cmds []redis.Cmder) (context.Context, error) {
+func (h *Hook) BeforeProcessPipeline(ctx context.Context, cmds []redis.Cmder) (context.Context, error) {
 	raw := commandsToString(cmds)
 	parts := strings.Split(raw, " ")
 	length := len(parts) - 1
-	p := h.tc.params
 	opts := []ddtrace.StartSpanOption{
 		tracer.SpanType(ext.SpanTypeRedis),
-		tracer.ServiceName(p.config.serviceName),
+		tracer.ServiceName(h.cfg.serviceName),
 		tracer.ResourceName(parts[0]),
-		tracer.Tag(ext.TargetHost, p.host),
-		tracer.Tag(ext.TargetPort, p.port),
-		tracer.Tag("out.db", p.db),
+		tracer.Tag(ext.TargetHost, h.cfg.host),
+		tracer.Tag(ext.TargetPort, h.cfg.port),
+		tracer.Tag("out.db", h.cfg.db),
 		tracer.Tag("redis.raw_command", raw),
 		tracer.Tag("redis.args_length", strconv.Itoa(length)),
 	}
-	if !math.IsNaN(p.config.analyticsRate) {
-		opts = append(opts, tracer.Tag(ext.EventSampleRate, p.config.analyticsRate))
+	if !math.IsNaN(h.cfg.analyticsRate) {
+		opts = append(opts, tracer.Tag(ext.EventSampleRate, h.cfg.analyticsRate))
 	}
 	_, ctxWithSpan := tracer.StartSpanFromContext(ctx, "redis.command", opts...)
 	return ctxWithSpan, nil
 }
 
-func (h *hook) AfterProcessPipeline(ctx context.Context, cmds []redis.Cmder) error {
+func (h *Hook) AfterProcessPipeline(ctx context.Context, cmds []redis.Cmder) error {
 	span, _ := tracer.SpanFromContext(ctx)
 	span.SetTag(ext.ResourceName, commandsToString(cmds))
 	span.SetTag("redis.pipeline_length", strconv.Itoa(len(cmds)))

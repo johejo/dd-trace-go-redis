@@ -38,8 +38,3 @@ for `go-redis/redis/v8`
 ```
 "github.com/johejo/dd-trace-go-redis/v8"
 ```
-
-## Difference from dd-trace-go
-
-`WithContext` and `WithTimeout` will returns `go-redis/redis`'s raw `Client`.
-But Hook is already set up so Tracer will work fine.

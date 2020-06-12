@@ -7,11 +7,24 @@ package redis
 
 import (
 	"math"
+	"net"
+	"strconv"
+
+	"github.com/go-redis/redis/v7"
+)
+
+const (
+	defaultHost = "127.0.0.1"
+	defaultPort = "6379"
+	defaultDB   = "0"
 )
 
 type clientConfig struct {
 	serviceName   string
 	analyticsRate float64
+	host          string
+	port          string
+	db            string
 }
 
 // ClientOption represents an option that can be used to create or wrap a client.
@@ -21,6 +34,9 @@ func defaults(cfg *clientConfig) {
 	cfg.serviceName = "redis.client"
 	// cfg.analyticsRate = globalconfig.AnalyticsRate()
 	cfg.analyticsRate = math.NaN()
+	cfg.host = defaultHost
+	cfg.port = defaultPort
+	cfg.db = defaultDB
 }
 
 // WithServiceName sets the given service name for the client.
@@ -50,5 +66,40 @@ func WithAnalyticsRate(rate float64) ClientOption {
 		} else {
 			cfg.analyticsRate = math.NaN()
 		}
+	}
+}
+
+// WithHost sets the host for the client.
+func WithHost(host string) ClientOption {
+	return func(cfg *clientConfig) {
+		cfg.host = host
+	}
+}
+
+// WithPort sets the port for the client.
+func WithPort(port string) ClientOption {
+	return func(cfg *clientConfig) {
+		cfg.port = port
+	}
+}
+
+// WithDB sets the db for the client.
+func WithDB(db string) ClientOption {
+	return func(cfg *clientConfig) {
+		cfg.db = db
+	}
+}
+
+// WithRedisOptions sets the redis.Option for the client.
+func WithRedisOptions(opts *redis.Options) ClientOption {
+	return func(cfg *clientConfig) {
+		host, port, err := net.SplitHostPort(opts.Addr)
+		if err != nil {
+			host = defaultHost
+			port = defaultPort
+		}
+		cfg.host = host
+		cfg.port = port
+		cfg.db = strconv.Itoa(opts.DB)
 	}
 }
