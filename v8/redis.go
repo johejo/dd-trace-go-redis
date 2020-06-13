@@ -29,7 +29,7 @@ func NewClient(opt *redis.Options, opts ...ClientOption) *redis.Client {
 
 // WrapClient wraps a given redis.Client with a tracer under the given service name.
 func WrapClient(c *redis.Client, opts ...ClientOption) *redis.Client {
-	_opts := []ClientOption{withRedisOptions(c.Options())}
+	_opts := []ClientOption{WithRedisOptions(c.Options())}
 	_opts = append(_opts, opts...)
 	c.AddHook(NewHook(_opts...))
 	return c
