@@ -207,7 +207,7 @@ func TestError(t *testing.T) {
 		mt := mocktracer.Start()
 		defer mt.Stop()
 
-		client := NewClient(opts, WithServiceName("my-redis"), WithRedisOptions(opts))
+		client := NewClient(opts, WithServiceName("my-redis"))
 		_, err := client.Get(ctx, "key").Result()
 
 		spans := mt.FinishedSpans()

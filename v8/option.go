@@ -90,8 +90,7 @@ func WithDB(db string) ClientOption {
 	}
 }
 
-// WithRedisOptions sets the redis.Option for the client.
-func WithRedisOptions(opts *redis.Options) ClientOption {
+func withRedisOptions(opts *redis.Options) ClientOption {
 	return func(cfg *clientConfig) {
 		host, port, err := net.SplitHostPort(opts.Addr)
 		if err != nil {
