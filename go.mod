@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/DataDog/datadog-go v4.0.0+incompatible // indirect
 	github.com/go-redis/redis/v7 v7.4.0
-	github.com/go-redis/redis/v8 v8.0.0-beta.9
+	github.com/go-redis/redis/v8 v8.0.0-beta.10
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/philhofer/fwd v1.0.0 // indirect
