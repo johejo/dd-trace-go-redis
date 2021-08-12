@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/Microsoft/go-winio v0.4.16 // indirect
 	github.com/go-redis/redis/v7 v7.4.1
-	github.com/go-redis/redis/v8 v8.11.2
+	github.com/go-redis/redis/v8 v8.11.3
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/philhofer/fwd v1.1.1 // indirect
